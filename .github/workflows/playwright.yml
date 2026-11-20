@@ -1,0 +1,120 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Playwright E2E Tests
+#
+# PURPOSE:
+#   Starts EventHub against an isolated MySQL service and runs the full
+#   Playwright suite on every push to main. Uploads the HTML report as an
+#   artifact so results can be reviewed in the GitHub Actions UI.
+#
+# TRIGGER: push to main
+#
+# NOTES:
+#   - Tests use an ephemeral MySQL database and local app servers
+#   - Chromium only (as configured in playwright.config.ts)
+#   - HTML report is retained for 30 days as a downloadable artifact
+# ══════════════════════════════════════════════════════════════════════════════
+
+name: Playwright E2E Tests
+
+on:
+  push:
+    branches: [main]
+
+  # Allow manual runs from the GitHub Actions UI
+  workflow_dispatch:
+
+concurrency:
+  group: playwright-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '21.7.1'
+  DATABASE_URL: mysql://root:root@127.0.0.1:3306/eventhub
+  JWT_SECRET: playwright-ci-only-secret
+  PORT: 3001
+  CORS_ORIGIN: http://127.0.0.1:3000
+  PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+
+jobs:
+
+  # ╔═══════════════════════════════════════════════════════════════════════════
+  # ║  Playwright Tests
+  # ║  Installs dependencies, runs all specs, and uploads the HTML report.
+  # ╚═══════════════════════════════════════════════════════════════════════════
+  playwright:
+    name: Run Playwright Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: eventhub
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --user=root --password=root"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      # ── Checkout ─────────────────────────────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Node.js setup ─────────────────────────────────────────────────────────
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      # ── Install root dependencies ────────────────────────────────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        working-directory: backend
+
+      - name: Create database schema
+        run: npx prisma db push
+        working-directory: backend
+
+      - name: Seed isolated test data
+        run: npm run seed --prefix backend
+
+      # ── Install Playwright browsers ──────────────────────────────────────────
+      # Only installs Chromium (--with-deps installs OS-level dependencies too)
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      # ── Run all Playwright tests ─────────────────────────────────────────────
+      - name: Run Playwright tests
+        run: npx playwright test --reporter=html,line
+
+      # ── Upload HTML report as artifact ───────────────────────────────────────
+      # The report is generated in playwright-report/ by the html reporter.
+      # Retained for 30 days so the team can review results after a run.
+      - name: Upload Playwright HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: playwright-report/
+          if-no-files-found: warn
+          retention-days: 30
