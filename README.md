@@ -12,9 +12,10 @@ A full-stack ticket booking platform built with **Next.js 14**, **Express.js**, 
 
 ## Prerequisites
 
-- **Node.js 18+**
-- **MySQL 8+** running locally (or a remote instance)
-- **npm** (comes with Node.js)
+- To run the app directly: **Node.js 18+**, **npm**, and **MySQL 8+**.
+- To run the Playwright tests in Docker: **Docker Desktop** (or Docker Engine
+  with the Compose plugin); Node.js, npm, MySQL, and browsers are not needed
+  on the host.
 
 ---
 
@@ -25,6 +26,25 @@ A full-stack ticket booking platform built with **Next.js 14**, **Express.js**, 
 ```bash
 git clone <repo-url>
 cd eventhub
+```
+
+### Run the Playwright test in Docker (no local Node.js required)
+
+With Docker available, run this from the repository root:
+
+```bash
+docker compose up --build --force-recreate --abort-on-container-exit --exit-code-from tests
+```
+
+Compose builds the test runner and starts an isolated MySQL database, backend,
+and frontend before running the Playwright suite. The command exits with the
+test result; the HTML report and test artifacts are written to
+`playwright-report/` and `test-results/`.
+
+The containers stop when the test run finishes. To remove them afterward:
+
+```bash
+docker compose down --volumes --remove-orphans
 ```
 
 ### 2. Install dependencies

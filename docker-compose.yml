@@ -1,7 +1,62 @@
 services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: eventhub
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=root --password=$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: mysql://root:root@db:3306/eventhub
+      JWT_SECRET: playwright-docker-only-secret
+      PORT: 3001
+      NODE_ENV: production
+      CORS_ORIGIN: http://frontend:3000
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/health').then(r=>r.json()).then(d=>process.exit(d.dbStatus==='connected'?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:3001/api
+      PORT: 3000
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
   tests:
     build: .
-    # Mount report dirs so artifacts are accessible on the host after the run
+    environment:
+      PLAYWRIGHT_BASE_URL: http://frontend:3000
     volumes:
       - ./playwright-report:/app/playwright-report
       - ./test-results:/app/test-results
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
