@@ -1,43 +1,45 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3000';
+declare const process: { env: Record<string, string | undefined> };
+
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000";
 
 export default defineConfig({
-  testDir: './tests',
+  testDir: "./tests",
   timeout: 30_000,
   expect: { timeout: 5_000 },
   fullyParallel: false,
   retries: 0,
-  reporter: 'html',
+  reporter: "html",
 
   use: {
     baseURL,
     headless: true,
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
   },
 
-  webServer: process.env.CI ? [
-    {
-      command: 'npm run dev --prefix backend',
-      url: 'http://127.0.0.1:3001/api/health',
-      reuseExistingServer: false,
-      timeout: 120_000,
-    },
-    {
-      command: 'npm run dev --prefix frontend',
-      url: baseURL,
-      reuseExistingServer: false,
-      timeout: 120_000,
-      env: {
-        ...process.env,
-        PORT: '3000',
-        NEXT_PUBLIC_API_URL: 'http://127.0.0.1:3001/api',
-      },
-    },
-  ] : undefined,
+  webServer: process.env.CI
+    ? [
+        {
+          command: "npm run dev --prefix backend",
+          url: "http://127.0.0.1:3001/api/health",
+          reuseExistingServer: false,
+          timeout: 120_000,
+        },
+        {
+          command: "npm run dev --prefix frontend",
+          url: baseURL,
+          reuseExistingServer: false,
+          timeout: 120_000,
+          env: {
+            ...process.env,
+            PORT: "3000",
+            NEXT_PUBLIC_API_URL: "http://127.0.0.1:3001/api",
+          },
+        },
+      ]
+    : undefined,
 
-  projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-  ],
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });
