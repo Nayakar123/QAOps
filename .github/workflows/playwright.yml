@@ -18,7 +18,9 @@ name: Playwright E2E Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
 
   # Allow manual runs from the GitHub Actions UI
   workflow_dispatch:
@@ -28,7 +30,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '21.7.1'
+  NODE_VERSION: "21.7.1"
   DATABASE_URL: mysql://root:root@127.0.0.1:3306/eventhub
   JWT_SECRET: playwright-ci-only-secret
   PORT: 3001
@@ -36,15 +38,14 @@ env:
   PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
 
 jobs:
-
   # ╔═══════════════════════════════════════════════════════════════════════════
   # ║  Playwright Tests
   # ║  Installs dependencies, runs all specs, and uploads the HTML report.
   # ╚═══════════════════════════════════════════════════════════════════════════
   playwright:
     name: Run Playwright Tests
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: read
 
@@ -65,14 +66,14 @@ jobs:
     steps:
       # ── Checkout ─────────────────────────────────────────────────────────────
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # ── Node.js setup ─────────────────────────────────────────────────────────
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: package-lock.json
 
       # ── Install root dependencies ────────────────────────────────────────────
@@ -111,7 +112,7 @@ jobs:
       # The report is generated in playwright-report/ by the html reporter.
       # Retained for 30 days so the team can review results after a run.
       - name: Upload Playwright HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: playwright-report-${{ github.run_id }}
