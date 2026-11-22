@@ -106,7 +106,7 @@ jobs:
 
       # ── Run all Playwright tests ─────────────────────────────────────────────
       - name: Run Playwright tests
-        run: npx playwright test --reporter=html,line
+        run:  npx playwright test --config=playwright.service.config.ts --workers=4
 
       # ── Upload HTML report as artifact ───────────────────────────────────────
       # The report is generated in playwright-report/ by the html reporter.
