@@ -99,17 +99,17 @@ jobs:
       - name: Seed isolated test data
         run: npm run seed --prefix backend
 
-      # ── Playwright Azure Credenatils ──────────────────────────────────────────
+      # ── Authenticate with Azure Playwright ────────────────────────────────────
       - name: Azure Login
         uses: azure/login@v3
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      # ── Playwright Azure env varible ──────────────────────────────────────────
-        env:
-          PLAYWRIGHT_SERVICE_URL: ${{ vars.PLAYWRIGHT_SERVICE_URL }}
+
       # ── Run all Playwright tests ─────────────────────────────────────────────
       - name: Run Playwright tests
-        run:  npx playwright test --config=playwright.service.config.ts --workers=4
+        run: npx playwright test --config=playwright.service.config.ts --workers=4
+        env:
+          PLAYWRIGHT_SERVICE_URL: ${{ vars.PLAYWRIGHT_SERVICE_URL }}
 
       # ── Upload HTML report as artifact ───────────────────────────────────────
       # The report is generated in playwright-report/ by the html reporter.
