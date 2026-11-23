@@ -5,6 +5,30 @@ import config from "./playwright.config";
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000";
 const apiURL = "http://127.0.0.1:3001/api";
+const serviceWebServer = [
+  {
+    command: "npm run dev --prefix backend",
+    url: "http://127.0.0.1:3001/api/health",
+    reuseExistingServer: false,
+    timeout: 120_000,
+    env: {
+      ...process.env,
+      PORT: "3001",
+      CORS_ORIGIN: new URL(baseURL).origin,
+    },
+  },
+  {
+    command: "npm run dev --prefix frontend",
+    url: `${baseURL}/login`,
+    reuseExistingServer: false,
+    timeout: 120_000,
+    env: {
+      ...process.env,
+      PORT: "3000",
+      NEXT_PUBLIC_API_URL: apiURL,
+    },
+  },
+];
 
 /* Learn more about service configuration at https://aka.ms/pww/docs/config */
 export default defineConfig(
@@ -25,29 +49,6 @@ export default defineConfig(
     If you're already using other reporters, add them to this array.
     */
     reporter: [["html", { open: "never" }], ["@azure/playwright/reporter"]],
-    webServer: [
-      {
-        command: "npm run dev --prefix backend",
-        url: "http://127.0.0.1:3001/api/health",
-        reuseExistingServer: false,
-        timeout: 120_000,
-        env: {
-          ...process.env,
-          PORT: "3001",
-          CORS_ORIGIN: new URL(baseURL).origin,
-        },
-      },
-      {
-        command: "npm run dev --prefix frontend",
-        url: `${baseURL}/login`,
-        reuseExistingServer: false,
-        timeout: 120_000,
-        env: {
-          ...process.env,
-          PORT: "3000",
-          NEXT_PUBLIC_API_URL: apiURL,
-        },
-      },
-    ],
+    ...(config.webServer ? {} : { webServer: serviceWebServer }),
   },
 );
