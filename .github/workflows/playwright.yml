@@ -14,7 +14,7 @@
 #   - HTML report is retained for 30 days as a downloadable artifact
 # ══════════════════════════════════════════════════════════════════════════════
 
-name: Playwright E2E Tests (Test Running in Github actions and Azure cloud)
+name: Playwright E2E Tests (Test Running in Github actions and Azure cloud in new branch and once passed merge the code to main branch)
 
 on:
   push:
